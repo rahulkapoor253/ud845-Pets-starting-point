@@ -15,6 +15,7 @@
  */
 package com.example.android.pets;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -25,6 +26,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.android.pets.contract.PetContract;
 import com.example.android.pets.contract.PetDbHelper;
@@ -33,6 +35,8 @@ import com.example.android.pets.contract.PetDbHelper;
  * Displays list of pets that were entered and stored in the app.
  */
 public class CatalogActivity extends AppCompatActivity {
+
+    private PetDbHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +53,15 @@ public class CatalogActivity extends AppCompatActivity {
             }
         });
 
+        dbHelper = new PetDbHelper(this);//database connect;
+
+        displayDatabaseInfo();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        //on getting back it comes here and row count gets updated;
         displayDatabaseInfo();
     }
 
@@ -73,9 +86,16 @@ public class CatalogActivity extends AppCompatActivity {
         // Create and/or open a database to read from it
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
+
+        String[] projection = {
+                PetContract.PetEntry.COLUMN_NAME, PetContract.PetEntry.COLUMN_BREED,
+                PetContract.PetEntry.COLUMN_GENDER, PetContract.PetEntry.COLUMN_WEIGHT
+        };
         // Perform this raw SQL query "SELECT * FROM pets"
         // to get a Cursor that contains all rows from the pets table.
-        Cursor cursor = db.rawQuery("SELECT * FROM " + PetContract.PetEntry.TABLE_NAME, null);
+        // Cursor cursor = db.rawQuery("SELECT * FROM " + PetContract.PetEntry.TABLE_NAME, null);
+        Cursor cursor = db.query(PetContract.PetEntry.TABLE_NAME, projection, null, null, null, null, null); //here null for projection is *;
+        //we use here .query(table_name, projection, selection, selectargs, null, null, null);
         try {
             // Display the number of rows in the Cursor (which reflects the number of rows in the
             // pets table in the database).
@@ -95,6 +115,10 @@ public class CatalogActivity extends AppCompatActivity {
             // Respond to a click on the "Insert dummy data" menu option
             case R.id.action_insert_dummy_data:
                 // Do nothing for now
+
+                insertDummyData();
+                displayDatabaseInfo();
+
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
@@ -102,5 +126,26 @@ public class CatalogActivity extends AppCompatActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * insert dummy pet data;
+     */
+    private void insertDummyData() {
+
+        //we want to insert so to get a write db;
+        SQLiteDatabase database = dbHelper.getWritableDatabase();
+
+        //we make a hash map for key value pair to insert;
+        ContentValues values = new ContentValues();
+        values.put(PetContract.PetEntry.COLUMN_NAME, "Juniper");
+        values.put(PetContract.PetEntry.COLUMN_BREED, "French Bulldog");
+        values.put(PetContract.PetEntry.COLUMN_GENDER, PetContract.PetEntry.GENDER_MALE);
+        values.put(PetContract.PetEntry.COLUMN_WEIGHT, 9);
+
+        //it return the row id or -1 for error;
+        long id = database.insert(PetContract.PetEntry.TABLE_NAME, null, values);
+        Toast.makeText(this, "Row id for data : " + id, Toast.LENGTH_SHORT).show();
+
     }
 }
